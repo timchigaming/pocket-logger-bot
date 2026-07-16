@@ -4,17 +4,16 @@ from aiogram.types import Message
 from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 import logging, html, os, time, subprocess
-load_dotenv()
-from helpers.rights import check_rights
+load_dotenv('../.env')
+from helpers.rights import is_admin, IsAdmin
 
-internal = Router()
+system_router = Router()
 #------VARS------
 OS_NAME = os.name
 
 #----------------
-@internal.message(Command("system"))
+@system_router.message(Command("system"))
 async def execute_shell(message: Message):
-    if not check_rights(message.from_user.id): return
 
     cmd = message.text[8:].strip()
     if "sudo" in cmd or "rm -rf" in cmd: 

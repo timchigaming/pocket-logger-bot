@@ -1,3 +1,4 @@
 .env
 .venv
 roadmap
+*/__pycache__

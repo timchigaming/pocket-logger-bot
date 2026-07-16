@@ -5,7 +5,9 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
 from aiogram.enums import ParseMode
-from helpers.rights import check_rights
+from helpers.rights import is_admin, IsAdmin, TG_ADMIN_ID
+
+from handlers.system import system_router
 
 #------BOT-------
 bot = Bot(token=os.getenv("BOT_TOKEN"))
@@ -16,7 +18,7 @@ dp = Dispatcher()
 @dp.message(CommandStart())
 async def start(message: Message):
     answer = None
-    if check_rights(message.from_user.id):
+    if is_admin(message.from_user.id):
         answer = "Acess Granted."
     else:
         answer = "Я тебя не знаю, доступ не публичный, уходи.\n Приходи потом, через долгое время, может что-то поменяется."
@@ -24,10 +26,8 @@ async def start(message: Message):
     if answer:
         await message.reply(answer)
 
-@dp.message(Command("ping"))
+@dp.message(Command("ping"), IsAdmin(TG_ADMIN_ID))
 async def ping(message: Message):
-    if (not check_rights(message.from_user.id)): return
-
     now = datetime.datetime.now(datetime.timezone.utc)
 
     ping_tg_ms = (now - message.date).total_seconds() * 1000
@@ -45,6 +45,7 @@ async def on_shutdown(dispatcher: Dispatcher, bot: Bot):
 #----------------#----------------#----------------
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
+    dp.include_router(system_router)
     await dp.start_polling(bot)
 
 
