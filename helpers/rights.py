@@ -6,7 +6,9 @@ from typing import List
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
+#------VARS------
 TG_ADMIN_ID: int = int(os.getenv("TG_ADMIN_ID"))
+#----------------
 
 def is_admin(user_id: int) -> bool:
     if user_id == TG_ADMIN_ID:
@@ -24,3 +26,5 @@ class IsAdmin(BaseFilter):
             return message.from_user.id == admin_ids
         else:
             return message.from_user.id in admin_ids 
+
+#----------------#----------------#----------------
