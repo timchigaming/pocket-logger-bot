@@ -60,7 +60,7 @@ def system_info_internal():
             try:
                 disk_volume = ps.disk_usage(device)
                 disk_load = procentage_bar(disk_volume.percent)
-                disks_info += f"-\tДиск {device: <19}, ФС: {fstype: <7}, Занято {disk_volume.used//1024**2: >6.0f}МБ из {disk_volume.total//1024**2: >6.0f}МБ—[{disk_load}]\n"
+                disks_info += f"-\tДиск {device: <10}, ФС: {fstype: <7}, Занято {disk_volume.used//1024**2: >6.0f}МБ из {disk_volume.total//1024**2: >6.0f}МБ—[{disk_load}]\n"
             except (PermissionError, OSError):
                 continue # Устройство может быть "не готово". Ну и че? Пропускаем значит.
         return disks_info
