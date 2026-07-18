@@ -1,5 +1,7 @@
 import logging, html, os, time, subprocess, platform as pt, psutil as ps, datetime
 
+from psutil._ntuples import sdiskusage
+
 #------VARS------
 OS_NAME = os.name
 #----------------
@@ -39,6 +41,9 @@ Return code <code>{proc_result.returncode}</code>.
     return text
 
 def procentage_bar(value, delimeter = 100, width = 10):
+    if value < 1:
+        return "░" * width
+
     fill_percent = delimeter / value * 100
     
     fill: int = int( 100 / fill_percent * width)
@@ -52,14 +57,12 @@ def system_info_internal():
     def get_disks_info():
         disks_info = ""
         for device, _, fstype, _ in ps.disk_partitions():
-            disk_volume = None
             try:
-                disk_volume = ps.disk_usage(device[:2])
+                disk_volume = ps.disk_usage(device)
                 disk_load = procentage_bar(disk_volume.percent)
+                disks_info += f"-\tДиск {device: <19}, ФС: {fstype: <7}, Занято {disk_volume.used//1024**2: >6.0f}МБ из {disk_volume.total//1024**2: >6.0f}МБ—[{disk_load}]\n"
             except (PermissionError, OSError):
                 continue # Устройство может быть "не готово". Ну и че? Пропускаем значит.
-            finally:
-                disks_info += f"-\tДиск {device}, ФС: {fstype: <5}, Занято {disk_volume.used//1024**2: >6.0f}МБ из {disk_volume.total//1024**2: >6.0f}МБ—[{disk_load}]\n"
         return disks_info
     
     time_since_bootup = str(datetime.timedelta(seconds=int(time.time() - ps.boot_time())))
