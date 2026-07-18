@@ -52,6 +52,7 @@ def system_info_internal():
     def get_disks_info():
         disks_info = ""
         for device, _, fstype, _ in ps.disk_partitions():
+            disk_volume = None
             try:
                 disk_volume = ps.disk_usage(device[:2])
                 disk_load = procentage_bar(disk_volume.percent)
