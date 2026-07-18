@@ -1,7 +1,5 @@
 import logging, html, os, time, subprocess, platform as pt, psutil as ps, datetime
 
-from psutil._ntuples import sdiskusage
-
 #------VARS------
 OS_NAME = os.name
 #----------------
