@@ -45,7 +45,7 @@ def procentage_bar(value, delimeter = 100, width = 10):
     semi_transparent: int = (100 * width) % int(fill_percent) > 1
     empty: int = width - fill
     
-    return ("█" * fill) + ("▒" * semi_transparent) + ("░" * empty)
+    return ("█" * fill) + ("▓" * semi_transparent) + ("░" * empty)
 
 server_name = "SERVER" # После, когда будет SSH, заменим на его ключевое имя по 
 def system_info_internal():
@@ -74,7 +74,7 @@ f"""\
     Ядер {ps.cpu_count()}, Частота: {ps.cpu_freq()[0]:.0f}МГц, 
     Время работы: {time_since_bootup}, Загруженность СЕЙЧАС: {ps.cpu_percent(0.1)}% в общем.
 <b>ОЗУ</b>:
-    Всего {int(vm.total/1024**2):.0f}МБ, Используется {int(vm.used/1024**2):.0f}МБ—[{virtual_memory_load}]
+    Всего {int(vm.total/1024**2):.0f}МБ, Используется {int(vm.used/1024**2):.0f}МБ—<code>[{virtual_memory_load}]</code>
 <b>ДИСКИ</b>:\n<pre><code class="language-sh">{disks_info}</code></pre>
 """
     return text
