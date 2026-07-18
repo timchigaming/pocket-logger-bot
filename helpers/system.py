@@ -5,7 +5,7 @@ OS_NAME = os.name
 #----------------
 
 #----------------#----------------#----------------
-def execute_internal(cmd: str):
+def execute_internal(cmd: str, safe_output = True, max_symbols_per_log = 1500):
     if not cmd: logging.error(f"execute_internal() called with an invalid set of arguments: {cmd}")
 
     then = time.time()
@@ -20,6 +20,12 @@ def execute_internal(cmd: str):
     safe_cmd = html.escape(cmd)
     safe_stdout = html.escape(proc_result.stdout)
     safe_stderr = html.escape(proc_result.stderr)
+
+    if safe_output:
+        if len(safe_stdout) > max_symbols_per_log:
+            safe_stdout = safe_stdout[:max_symbols_per_log] + "\n[... (Достигнуто МАКС количество символов в потоке вывода) ...]"
+        if len(safe_stderr) > max_symbols_per_log:
+            safe_stderr = safe_stderr[:max_symbols_per_log] + "\n[... (Достигнуто МАКС количество символов в потоке вывода) ...]"
 
     text = \
 f"""\
