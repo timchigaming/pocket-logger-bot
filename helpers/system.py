@@ -1,4 +1,4 @@
-import logging, html, os, time, subprocess
+import logging, html, os, time, subprocess, platform as pt, psutil as ps, datetime
 
 #------VARS------
 OS_NAME = os.name
@@ -21,13 +21,55 @@ def execute_internal(cmd: str):
     safe_stdout = html.escape(proc_result.stdout)
     safe_stderr = html.escape(proc_result.stderr)
 
-    text = f"""\
+    text = \
+f"""\
 Запрос <code class="language-sh">{safe_cmd}</code> был обработан за <code>{dt}</code> секунд,
 STDOUT:
 <pre><code class="language-sh">{safe_stdout}</code></pre>
 STDERR:
 <pre><code class="language-sh"> {safe_stderr} </code></pre>
 Return code <code>{proc_result.returncode}</code>.
+"""
+    return text
+
+def procentage_bar(value, delimeter = 100, width = 10):
+    fill_percent = delimeter / value * 100
+    
+    fill: int = int( 100 / fill_percent * width)
+    semi_transparent: int = (100 * width) % int(fill_percent) > 1
+    empty: int = width - fill
+    
+    return ("█" * fill) + ("▒" * semi_transparent) + ("░" * empty)
+
+server_name = "SERVER" # После, когда будет SSH, заменим на его ключевое имя по 
+def system_info_internal():
+    def get_disks_info():
+        disks_info = ""
+        for device, _, fstype, _ in ps.disk_partitions():
+            try:
+                disk_volume = ps.disk_usage(device[:2])
+                disk_load = procentage_bar(disk_volume.percent)
+            except (PermissionError, OSError):
+                continue # Устройство может быть "не готово". Ну и че? Пропускаем значит.
+            finally:
+                disks_info += f"-\tДиск {device}, ФС: {fstype: <5}, Занято {disk_volume.used//1024**2: >6.0f}МБ из {disk_volume.total//1024**2: >6.0f}МБ—[{disk_load}]\n"
+        return disks_info
+    
+    time_since_bootup = str(datetime.timedelta(seconds=int(time.time() - ps.boot_time())))
+    vm = ps.virtual_memory()
+    virtual_memory_load = procentage_bar(vm.percent)
+    disks_info = get_disks_info()
+    
+    text = \
+f"""\
+Статы {server_name}:
+<b>ЦПУ</b>: 
+    Название: <code>{pt.processor()}</code>
+    Ядер {ps.cpu_count()}, Частота: {ps.cpu_freq()[0]:.0f}МГц, 
+    Время работы: {time_since_bootup}, Загруженность СЕЙЧАС: {ps.cpu_percent(0.1)}% в общем.
+<b>ОЗУ</b>:
+    Всего {int(vm.total/1024**2):.0f}МБ, Используется {int(vm.used/1024**2):.0f}МБ—[{virtual_memory_load}]
+<b>ДИСКИ</b>:\n<pre><code class="language-sh">{disks_info}</code></pre>
 """
     return text
 
