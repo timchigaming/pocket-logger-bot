@@ -22,7 +22,7 @@ async def execute_shell(message: Message):
         await message.reply("Команды уровня суперпользователя пока что не поддерживаются.")
         return
     
-    text = execute_internal(cmd)
+    text = await execute_internal(cmd)
     await message.reply(text, parse_mode=ParseMode.HTML)
 
 @system_router.message(Command("system_info"), IsAdmin())
@@ -31,7 +31,7 @@ async def get_system_info(message: Message):
     await message.reply(text, parse_mode=ParseMode.HTML)
 
 @system_router.message(Command("system_monitor"), IsAdmin())
-async def get_system_load(message: Message):
+async def get_system_monitor(message: Message):
     # psutil + fancy view + auto-update by... some kind of couroutine or idk
     pass
 

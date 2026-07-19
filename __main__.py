@@ -46,14 +46,12 @@ async def on_shutdown(dispatcher: Dispatcher, bot: Bot):
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     dp.include_router(system_router)
-    await dp.start_polling(bot)
-
+    try:
+        await dp.start_polling(bot)
+    except Exception as e:
+        print(f"Halted, stopping...\nReason: {e}")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     print("Initialized, working...")
-    
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Halted, stopping...")
+    asyncio.run(main())

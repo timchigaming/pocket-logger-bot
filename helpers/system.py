@@ -1,25 +1,27 @@
-import logging, html, os, time, subprocess, platform as pt, psutil as ps, datetime
+import logging, html, os, time, subprocess, platform as pt, psutil as ps, datetime, asyncio
+from typing import List
 
 #------VARS------
 OS_NAME = os.name
+running_processes: List[asyncio.subprocess.Process] = []
 #----------------
 
 #----------------#----------------#----------------
-def execute_internal(cmd: str, safe_output = True, max_symbols_per_log = 1500):
+async def execute_internal(cmd: str, safe_output = True, max_symbols_per_log = 1500):
     if not cmd: logging.error(f"execute_internal() called with an invalid set of arguments: {cmd}")
 
     then = time.time()
-    proc_result = subprocess.run(cmd, 
-                                shell=True, 
-                                capture_output=True, 
-                                encoding="cp866" if OS_NAME=="nt" else "utf-8", 
-                                text=True)
+    process = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    running_processes.append(process)
+    proc_result = await process.communicate()
+    running_processes.remove(process)
+
     now = time.time()
-    dt = f"{((now - then)):.0f}"
+    dt = f"{((now - then)):.0f}"    
     
     safe_cmd = html.escape(cmd)
-    safe_stdout = html.escape(proc_result.stdout)
-    safe_stderr = html.escape(proc_result.stderr)
+    safe_stdout = html.escape(proc_result[0].decode("cp866" if OS_NAME=="nt" else "utf-8").strip())
+    safe_stderr = html.escape(proc_result[1].decode("cp866" if OS_NAME=="nt" else "utf-8").strip())
 
     if safe_output:
         if len(safe_stdout) > max_symbols_per_log:
@@ -34,7 +36,7 @@ STDOUT:
 <pre><code class="language-sh">{safe_stdout}</code></pre>
 STDERR:
 <pre><code class="language-sh"> {safe_stderr} </code></pre>
-Return code <code>{proc_result.returncode}</code>.
+Return code <code>{process.returncode}</code>.
 """
     return text
 
