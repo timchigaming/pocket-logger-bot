@@ -1,9 +1,9 @@
-import logging, html, os, time, subprocess, platform as pt, psutil as ps, datetime, asyncio
+import logging, html, os, time, subprocess, platform as pt, psutil as ps, datetime, asyncio, locale
 from asyncio.subprocess import Process
 
 #------VARS------
 OS_NAME = os.name
-CODEPAGE = "cp866" if OS_NAME == "nt" else "utf-8" 
+CODEPAGE = locale.getpreferredencoding()
 
 executing_shells: list[tuple[str, int, Process]] = []
 #----------------
@@ -25,11 +25,11 @@ async def execute_internal(cmd: str, safe_output = True, max_symbols_per_log = 1
     async def read_stdout():
         nonlocal stdout
         async for line in process.stdout:
-            stdout += line.decode(CODEPAGE)
+            stdout += line.decode(CODEPAGE, "replace")
     async def read_stderr():
         nonlocal stderr
         async for line in process.stderr:
-            stderr += line.decode(CODEPAGE)
+            stderr += line.decode(CODEPAGE, "replace")
 
     stdout_read_task = asyncio.create_task(read_stdout())
     stderr_read_task = asyncio.create_task(read_stderr())
@@ -37,8 +37,19 @@ async def execute_internal(cmd: str, safe_output = True, max_symbols_per_log = 1
     text = ""
     while process.returncode is None or (not stdout_read_task.done() or not stderr_read_task.done()):
         dt = int(time.time() - then)
-        safe_stdout = html.escape(stdout[-max_symbols_per_log:])
-        safe_stderr = html.escape(stderr[-max_symbols_per_log:])
+
+        safe_stdout = ""
+        if len(stdout) > max_symbols_per_log:
+            safe_stdout = html.escape(stdout[:max_symbols_per_log//2] + "\n\n\t... ВЫРЕЗАНО ...\n\n" + stdout[-max_symbols_per_log//2:])
+        else:
+            safe_stdout = html.escape(stdout)
+
+        safe_stderr = ""
+        if len(stderr) > max_symbols_per_log:
+            safe_stderr = html.escape(stderr[:max_symbols_per_log//2] + "\n\n\t... ВЫРЕЗАНО ...\n\n" + stderr[-max_symbols_per_log//2:])
+        else:
+            safe_stderr = html.escape(stderr)
+
         text = \
 f"""\
 Запрос <code class="language-sh">{safe_cmd}</code> обрабатывается <code>{dt}</code> секунд,
@@ -53,8 +64,19 @@ STDERR:
         await asyncio.sleep(2)
     
     dt = int(time.time() - then)
-    safe_stdout = html.escape(stdout[-max_symbols_per_log:])
-    safe_stderr = html.escape(stderr[-max_symbols_per_log:])
+    
+    safe_stdout = ""
+    if len(stdout) > max_symbols_per_log:
+        safe_stdout = html.escape(stdout[:max_symbols_per_log//2] + "\n\n\t... ВЫРЕЗАНО ...\n\n" + stdout[-max_symbols_per_log//2:])
+    else:
+        safe_stdout = html.escape(stdout)
+
+    safe_stderr = ""
+    if len(stderr) > max_symbols_per_log:
+        safe_stderr = html.escape(stderr[:max_symbols_per_log//2] + "\n\n\t... ВЫРЕЗАНО ...\n\n" + stderr[-max_symbols_per_log//2:])
+    else:
+        safe_stderr = html.escape(stderr)
+    
     text = \
 f"""\
 Запрос <code class="language-sh">{safe_cmd}</code> обрабатывался <code>{dt}</code> секунд,
