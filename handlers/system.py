@@ -2,6 +2,7 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.enums import ParseMode
+from logging import error
 from dotenv import load_dotenv
 
 load_dotenv('../.env')
@@ -23,8 +24,21 @@ async def execute_shell(message: Message):
         await message.reply("Команды уровня суперпользователя пока что не поддерживаются.")
         return
     
-    text = await execute_internal(cmd)
-    await message.reply(text, parse_mode=ParseMode.HTML)
+    text_prev = ""
+    sent_message = None
+    async for text in execute_internal(cmd):
+        if sent_message is None:
+            sent_message = await message.reply(text, parse_mode=ParseMode.HTML)
+            text_prev = text
+            continue
+
+        if text == text_prev: continue
+        
+        try:        
+            await sent_message.edit_text(text, parse_mode=ParseMode.HTML)
+            text_prev = text
+        except Exception as e:
+            error("Cannot edit execute_shell message: " + e)
 
 @system_router.message(Command("system_info"), IsAdmin())
 async def get_system_info(message: Message):

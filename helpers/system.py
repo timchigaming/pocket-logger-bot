@@ -3,6 +3,8 @@ from asyncio.subprocess import Process
 
 #------VARS------
 OS_NAME = os.name
+CODEPAGE = "cp866" if OS_NAME == "nt" else "utf-8" 
+
 executing_shells: list[tuple[str, int, Process]] = []
 #----------------
 
@@ -16,34 +18,56 @@ async def execute_internal(cmd: str, safe_output = True, max_symbols_per_log = 1
 
     executing_shells.append(process_packed)
 
-    try:
-        proc_result = await process.communicate()
-    finally:
-        executing_shells.remove(process_packed)
-
-    now = time.time()
-    dt = f"{((now - then)):.0f}"    
-    
     safe_cmd = html.escape(cmd)
-    safe_stdout = html.escape(proc_result[0].decode("cp866" if OS_NAME=="nt" else "utf-8").strip())
-    safe_stderr = html.escape(proc_result[1].decode("cp866" if OS_NAME=="nt" else "utf-8").strip())
 
-    if safe_output:
-        if len(safe_stdout) > max_symbols_per_log:
-            safe_stdout = safe_stdout[:max_symbols_per_log] + "\n[... (Достигнуто МАКС количество символов в потоке вывода) ...]"
-        if len(safe_stderr) > max_symbols_per_log:
-            safe_stderr = safe_stderr[:max_symbols_per_log] + "\n[... (Достигнуто МАКС количество символов в потоке вывода) ...]"
+    stdout = ""
+    stderr = ""
+    async def read_stdout():
+        nonlocal stdout
+        async for line in process.stdout:
+            stdout += line.decode(CODEPAGE)
+    async def read_stderr():
+        nonlocal stderr
+        async for line in process.stderr:
+            stderr += line.decode(CODEPAGE)
 
+    stdout_read_task = asyncio.create_task(read_stdout())
+    stderr_read_task = asyncio.create_task(read_stderr())
+
+    text = ""
+    while process.returncode is None or (not stdout_read_task.done() or not stderr_read_task.done()):
+        dt = int(time.time() - then)
+        safe_stdout = html.escape(stdout[-max_symbols_per_log:])
+        safe_stderr = html.escape(stderr[-max_symbols_per_log:])
+        text = \
+f"""\
+Запрос <code class="language-sh">{safe_cmd}</code> обрабатывается <code>{dt}</code> секунд,
+STDOUT:
+<pre><code class="language-sh">{safe_stdout}</code></pre>
+STDERR:
+<pre><code class="language-sh"> {safe_stderr} </code></pre>
+""" 
+        yield text
+        
+        if process.returncode is not None: break
+        await asyncio.sleep(2)
+    
+    dt = int(time.time() - then)
+    safe_stdout = html.escape(stdout[-max_symbols_per_log:])
+    safe_stderr = html.escape(stderr[-max_symbols_per_log:])
     text = \
 f"""\
-Запрос <code class="language-sh">{safe_cmd}</code> был обработан за <code>{dt}</code> секунд,
+Запрос <code class="language-sh">{safe_cmd}</code> обрабатывался <code>{dt}</code> секунд,
 STDOUT:
 <pre><code class="language-sh">{safe_stdout}</code></pre>
 STDERR:
 <pre><code class="language-sh"> {safe_stderr} </code></pre>
 Return code <code>{process.returncode}</code>.
-"""
-    return text
+""" 
+    yield text
+
+    if process_packed in executing_shells:
+        executing_shells.remove(process_packed)
 
 async def halt_execute_internal(pid):
     pid_str = str(pid)
