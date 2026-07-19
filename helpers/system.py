@@ -47,15 +47,15 @@ Return code <code>{process.returncode}</code>.
 
 async def halt_execute_internal(pid):
     pid_str = str(pid)
-    kill_cmd = "taskkill /F /T /PID " + pid_str if OS_NAME=="nt" else "pkill -9 -P " + pid_str
+    kill_cmd = "taskkill /F /T /PID " + pid_str if OS_NAME=="nt" else "kill -9 " + pid_str
 
     for pack in executing_shells:
         cmd, _pid, process = pack
         if _pid != pid: continue
         
-        subprocess.run(kill_cmd)
+        subprocess.run(kill_cmd, shell=True)
         return await process.wait()
-    return 0
+    return None
 #----------------#----------------
 
 def procentage_bar(value, delimeter = 100, width = 10):

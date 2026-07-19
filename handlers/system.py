@@ -50,7 +50,11 @@ async def halt_execute_shell(message: Message):
 async def halt_execute_shell_callback(callback: CallbackQuery):
     pid = int(callback.data[6:])
     return_code = await halt_execute_internal(pid)
+
     text = f"Процесс с PID {pid} завершён. Код возврата: {return_code}"
+    if return_code is None:
+        text = f"{pid} уже завершён."
+
     await callback.message.reply(text, parse_mode=ParseMode.HTML)
 
 #----------------#----------------#----------------
