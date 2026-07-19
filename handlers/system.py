@@ -1,13 +1,14 @@
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 
 load_dotenv('../.env')
 
 from helpers.rights import is_admin, IsAdmin
-from helpers.system import execute_internal, system_info_internal
+from helpers.system import execute_internal, system_info_internal, halt_execute_internal
+from keyboards.stop_executing_shells import get_executing_shells_keyboard
 
 #------BOT-------
 system_router = Router()
@@ -34,5 +35,22 @@ async def get_system_info(message: Message):
 async def get_system_monitor(message: Message):
     # psutil + fancy view + auto-update by... some kind of couroutine or idk
     pass
+
+@system_router.message(Command("halt_execute"), IsAdmin())
+async def halt_execute_shell(message: Message):
+    reply_keyboard = get_executing_shells_keyboard()
+    
+    text = "Активных задач нет" 
+    if reply_keyboard:
+        text = "Какую из запущенных задач остановить?"
+        
+    await message.answer(text, reply_markup=reply_keyboard)
+
+@system_router.callback_query(F.data.contains("killp"))
+async def halt_execute_shell_callback(callback: CallbackQuery):
+    pid = int(callback.data[6:])
+    return_code = await halt_execute_internal(pid)
+    text = f"Процесс с PID {pid} завершён. Код возврата: {return_code}"
+    await callback.message.reply(text, parse_mode=ParseMode.HTML)
 
 #----------------#----------------#----------------

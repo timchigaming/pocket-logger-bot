@@ -1,9 +1,9 @@
 import logging, html, os, time, subprocess, platform as pt, psutil as ps, datetime, asyncio
-from typing import List
+from asyncio.subprocess import Process
 
 #------VARS------
 OS_NAME = os.name
-running_processes: List[asyncio.subprocess.Process] = []
+executing_shells: list[tuple[str, int, Process]] = []
 #----------------
 
 #----------------#----------------#----------------
@@ -12,9 +12,14 @@ async def execute_internal(cmd: str, safe_output = True, max_symbols_per_log = 1
 
     then = time.time()
     process = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-    running_processes.append(process)
-    proc_result = await process.communicate()
-    running_processes.remove(process)
+    process_packed = (cmd, process.pid, process)
+
+    executing_shells.append(process_packed)
+
+    try:
+        proc_result = await process.communicate()
+    finally:
+        executing_shells.remove(process_packed)
 
     now = time.time()
     dt = f"{((now - then)):.0f}"    
@@ -39,6 +44,19 @@ STDERR:
 Return code <code>{process.returncode}</code>.
 """
     return text
+
+async def halt_execute_internal(pid):
+    pid_str = str(pid)
+    kill_cmd = "taskkill /F /T /PID " + pid_str if OS_NAME=="nt" else "pkill -9 -P " + pid_str
+
+    for pack in executing_shells:
+        cmd, _pid, process = pack
+        if _pid != pid: continue
+        
+        subprocess.run(kill_cmd)
+        return await process.wait()
+    return 0
+#----------------#----------------
 
 def procentage_bar(value, delimeter = 100, width = 10):
     if value < 1:
@@ -76,7 +94,7 @@ f"""\
 <b>ЦПУ</b>: 
     Название: <code>{pt.processor()}</code>
     Ядер {ps.cpu_count()}, Частота: {ps.cpu_freq()[0]:.0f}МГц, 
-    Время работы: {time_since_bootup}, Загруженность СЕЙЧАС: {ps.cpu_percent(0.1)}% в общем.
+    Время работы: {time_since_bootup}, Загруженность СЕЙЧАС: {ps.cpu_percent(interval=0.1)}% в общем.
 <b>ОЗУ</b>:
     Всего {int(vm.total/1024**2):.0f}МБ, Используется {int(vm.used/1024**2):.0f}МБ—<code>[{virtual_memory_load}]</code>
 <b>ДИСКИ</b>:\n<pre><code class="language-sh">{disks_info}</code></pre>

@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 load_dotenv('../.env')
 
-from typing import List
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
@@ -16,7 +15,7 @@ def is_admin(user_id: int) -> bool:
     return False
 
 class IsAdmin(BaseFilter):
-    def __init__(self, user_ids: int | List[int] = TG_ADMIN_ID):
+    def __init__(self, user_ids: int | list[int] = TG_ADMIN_ID):
         self.user_ids = user_ids
     
     async def __call__(self, message: Message) -> bool:
